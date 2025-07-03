@@ -110,7 +110,7 @@ if sensor_width and pixel_size:
                 st.markdown("##### Face Recognition–Compliant System")
                 st.markdown(f"""
             **Required Distance:** {distance_fr_cm:.2f} cm  
-            **HFOV (for 18 cm face):** {hfov_fr_cm:.2f} cm  
+            **Required HFOV:** {hfov_fr_cm:.2f} cm  
             """)
 
             
