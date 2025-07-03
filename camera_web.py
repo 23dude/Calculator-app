@@ -98,11 +98,12 @@ if sensor_width and pixel_size:
             with col1:
                 st.markdown("##### Current System")
                 st.markdown(f"""
+
+            **Working Distance:** {distance_cm:.2f} cm  
             **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
             **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
             **Focal Length:** {focal_length:.2f} mm  
             **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
-            **Working Distance:** {distance_cm:.2f} cm  
             """)
             
             with col2:
