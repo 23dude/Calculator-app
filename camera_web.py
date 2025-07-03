@@ -113,6 +113,21 @@ if sensor_width and pixel_size:
 
             st.pyplot(fig)
 
+            # --- System Diagram & Parameters ---
+            st.write("### System Diagram")
+            
+            # 顯示示意圖
+            st.image("optical_diagram.png", use_container_width=True)
+            
+            # 參數列表
+            st.markdown(f"""
+            **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
+            **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
+            **Focal Length:** {focal_length:.2f} mm  
+            **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
+            **Working Distance:** {distance_cm:.2f} cm  
+            """)
+            
             # --- Real Face Pixelation Comparison ---
             st.write("### Face Clarity Comparison")
             uploaded = st.file_uploader("Upload a face image to visualize pixelation", type=['png','jpg','jpeg'])
@@ -134,19 +149,4 @@ if sensor_width and pixel_size:
                 with col2:
                     st.image(pixelate(img, 80), caption="80 px (We wanted)", use_container_width=True)
 
-
-                # --- System Diagram & Parameters ---
-                st.write("### System Diagram")
-                
-                # 顯示示意圖
-                st.image("optical_diagram.png", use_container_width=True)
-                
-                # 參數列表
-                st.markdown(f"""
-                **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
-                **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
-                **Focal Length:** {focal_length:.2f} mm  
-                **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
-                **Working Distance:** {distance_cm:.2f} cm  
-                """)
 
