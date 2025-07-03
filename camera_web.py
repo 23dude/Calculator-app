@@ -3,7 +3,7 @@ import math
 import matplotlib.pyplot as plt
 from PIL import Image
 
-st.title("📷 Face Recognition Calculator with Visual Indicator")
+st.title("📷 Face Recognition Calculator")
 
 # 基礎輸入
 h_res = st.number_input("Horizontal resolution (pixels)", min_value=1)
@@ -87,6 +87,22 @@ if sensor_width and pixel_size:
             st.write(f"- Horizontal FOV: **{hfov_fr_cm:.2f} cm**")
             st.write(f"- Required distance: **{distance_fr_cm:.2f} cm**")
 
+
+            # --- System Diagram & Parameters ---
+            st.write("### System Diagram")
+            
+            # 顯示示意圖
+            st.image("optical_diagram.png", use_container_width=True)
+            
+            # 參數列表
+            st.markdown(f"""
+            **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
+            **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
+            **Focal Length:** {focal_length:.2f} mm  
+            **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
+            **Working Distance:** {distance_cm:.2f} cm  
+            """)
+
             
             # 簡化版電池條狀圖
             st.write("### Visual Indicator")
@@ -112,21 +128,7 @@ if sensor_width and pixel_size:
             )
 
             st.pyplot(fig)
-
-            # --- System Diagram & Parameters ---
-            st.write("### System Diagram")
             
-            # 顯示示意圖
-            st.image("optical_diagram.png", use_container_width=True)
-            
-            # 參數列表
-            st.markdown(f"""
-            **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
-            **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
-            **Focal Length:** {focal_length:.2f} mm  
-            **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
-            **Working Distance:** {distance_cm:.2f} cm  
-            """)
             
             # --- Real Face Pixelation Comparison ---
             st.write("### Face Clarity Comparison")
