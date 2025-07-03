@@ -159,6 +159,6 @@ if sensor_width and pixel_size:
                 with col1:
                     st.image(pixelate(img, px_for_18cm), caption=f"Computed: {px_for_18cm:.0f} px", use_container_width=True)
                 with col2:
-                    st.image(pixelate(img, 80), caption="Required:80 px", use_container_width=True)
+                    st.image(pixelate(img, 80), caption="Required: 80 px", use_container_width=True)
 
 
