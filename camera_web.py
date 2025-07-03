@@ -86,19 +86,28 @@ if sensor_width and pixel_size:
             st.write(f"- Horizontal FOV: **{hfov_fr_cm:.2f} cm**")
             st.write(f"- Required distance: **{distance_fr_cm:.2f} cm**")
 
+            
             # 簡化版電池條狀圖
-            st.write("### Visual Indicator (Face Pixel Occupancy)")
+            st.write("### Visual Indicator")
 
             fig, ax = plt.subplots(figsize=(6, 1.5))
             max_px = 80.0
-            fill_px = min(px_for_18cm, max_px)
-            fill_ratio = fill_px / max_px * 100
+            fill_px = min(px_for_18cm, max_px)            # 條狀圖最多填到 80px
+            actual_ratio = px_for_18cm / max_px * 100     # 真正的占比，可能超過 100%
 
+            # 畫出綠色填滿部分
             ax.barh(0, fill_px, color="green")
+            # 畫出剩餘部分（灰色）
             ax.barh(0, max_px - fill_px, left=fill_px, color="lightgray")
+
             ax.set_xlim(0, max_px)
             ax.set_yticks([])
             ax.set_xticks([])
-            ax.set_title(f"Face Pixel Occupancy: {fill_px:.1f} px / 80 px ({fill_ratio:.1f}%)")
+
+            # 標題顯示 真實 px 和 真實占比（可能 >100%）
+            ax.set_title(
+                f"Face Pixel Occupancy: {px_for_18cm:.1f} px / {max_px:.0f} px "
+                f"({actual_ratio:.1f}% actual)"
+            )
 
             st.pyplot(fig)
