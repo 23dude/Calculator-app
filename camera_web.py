@@ -1,6 +1,7 @@
 import streamlit as st
 import math
 import matplotlib.pyplot as plt
+from PIL import Image
 
 st.title("📷 Face Recognition Calculator with Visual Indicator")
 
@@ -111,3 +112,24 @@ if sensor_width and pixel_size:
             )
 
             st.pyplot(fig)
+
+            # --- Real Face Pixelation Comparison ---
+            st.write("### Face Clarity Comparison")
+            uploaded = st.file_uploader("Upload a face image to visualize pixelation", type=['png','jpg','jpeg'])
+            if uploaded is not None:
+                # 讀取並裁切正方形
+                img = Image.open(uploaded)
+                w, h = img.size
+                m = min(w, h)
+                img = img.crop(((w-m)//2, (h-m)//2, (w+m)//2, (h+m)//2))
+
+                # 產生像素化版本
+                def pixelate(im, px):
+                    small = im.resize((int(px), int(px)), resample=Image.BILINEAR)
+                    return small.resize((256,256), resample=Image.NEAREST)
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.image(pixelate(img, px_for_18cm), caption=f"Computed: {px_for_18cm:.0f} px", use_container_width=True)
+                with col2:
+                    st.image(pixelate(img, 80), caption="80 px (We wanted)", use_container_width=True)
