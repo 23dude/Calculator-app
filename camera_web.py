@@ -105,7 +105,7 @@ if sensor_width and pixel_size:
 
             
             # 簡化版電池條狀圖
-            st.write("### Visual Indicator")
+            st.write("### Visual Indicator (Assume 18cm wide face)")
 
             fig, ax = plt.subplots(figsize=(6, 1.5))
             max_px = 80.0
@@ -123,8 +123,8 @@ if sensor_width and pixel_size:
 
             # 標題顯示 真實 px 和 真實占比（可能 >100%）
             ax.set_title(
-                f"Face Pixel Occupancy: {px_for_18cm:.1f} px / {max_px:.0f} px "
-                f"({actual_ratio:.1f}% actual)"
+                f"Face Width Occupancy: {px_for_18cm:.1f} px / {max_px:.0f} px "
+                f"({actual_ratio:.1f}% )"
             )
 
             st.pyplot(fig)
