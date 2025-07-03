@@ -139,7 +139,7 @@ if sensor_width and pixel_size:
                 st.write("### System Diagram")
                 
                 # 顯示示意圖
-                st.image("three-categories-1.webp", use_container_width=True)
+                st.image("optical_diagram.png", use_container_width=True)
                 
                 # 參數列表
                 st.markdown(f"""
