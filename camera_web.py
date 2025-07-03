@@ -88,20 +88,26 @@ if sensor_width and pixel_size:
             st.write(f"- Required distance: **{distance_fr_cm:.2f} cm**")
 
 
-            # --- System Diagram & Parameters ---
+            # --- System Diagram & Parameters with Face-Recognition Metrics ---
             st.write("### System Diagram")
-            
-            # 顯示示意圖
             st.image("optical_diagram.png", use_container_width=True)
             
-            # 參數列表
-            st.markdown(f"""
+            # 兩欄：左參數，右 Face‐Recognition 特殊指標
+            col1, col2 = st.columns([3,1])
+            
+            with col1:
+                st.markdown(f"""
             **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
             **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
             **Focal Length:** {focal_length:.2f} mm  
             **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
             **Working Distance:** {distance_cm:.2f} cm  
             """)
+            
+            with col2:
+                st.write("### Face‐Recognition Metrics")
+                st.write(f"- **Required Distance:** {distance_fr_cm:.2f} cm")
+                st.write(f"- **HFOV (for 18 cm face):** {hfov_fr_cm:.2f} cm")
 
             
             # 簡化版電池條狀圖
