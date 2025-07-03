@@ -96,7 +96,7 @@ if sensor_width and pixel_size:
             col1, col2 = st.columns(2)
 
             with col1:
-                st.subheader("Current System")
+                st.markdown("##### Current System")
                 st.markdown(f"""
             **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
             **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
@@ -106,7 +106,7 @@ if sensor_width and pixel_size:
             """)
             
             with col2:
-                st.subheader("Face Recognition–Compliant System")
+                st.markdown("##### Face Recognition–Compliant System")
                 st.markdown(f"""
             **Required Distance:** {distance_fr_cm:.2f} cm  
             **HFOV (for 18 cm face):** {hfov_fr_cm:.2f} cm  
