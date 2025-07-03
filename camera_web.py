@@ -93,9 +93,10 @@ if sensor_width and pixel_size:
             st.image("optical_diagram.png", use_container_width=True)
             
             # 兩欄：左參數，右 Face‐Recognition 特殊指標
-            col1, col2 = st.columns([3,1])
-            
+            col1, col2 = st.columns(2)
+
             with col1:
+                st.subheader("Current System")
                 st.markdown(f"""
             **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
             **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
@@ -105,9 +106,11 @@ if sensor_width and pixel_size:
             """)
             
             with col2:
-                st.write("### Face‐Recognition Metrics")
-                st.write(f"- **Required Distance:** {distance_fr_cm:.2f} cm")
-                st.write(f"- **HFOV (for 18 cm face):** {hfov_fr_cm:.2f} cm")
+                st.subheader("Face Recognition–Compliant System")
+                st.markdown(f"""
+            **Required Distance:** {distance_fr_cm:.2f} cm  
+            **HFOV (for 18 cm face):** {hfov_fr_cm:.2f} cm  
+            """)
 
             
             # 簡化版電池條狀圖
