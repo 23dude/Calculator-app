@@ -138,18 +138,15 @@ if sensor_width and pixel_size:
                 # --- System Diagram & Parameters ---
                 st.write("### System Diagram")
                 
-                # 顯示你提供的示意圖
+                # 顯示示意圖
                 st.image("three-categories-1.webp", use_container_width=True)
                 
-                # 重新計算並顯示參數
-                hfov_deg = 2 * math.degrees(math.atan(sensor_width / (2 * focal_length)))
-                diagonal = math.hypot(sensor_width, sensor_height)
-                dfov_deg = 2 * math.degrees(math.atan(diagonal / (2 * focal_length)))
-                
+                # 參數列表
                 st.markdown(f"""
-                **Horizontal FOV (HFOV):** {hfov_deg:.2f}°  
+                **Horizontal FOV (HFOV):** {hfov_mm/10:.2f} cm  
                 **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
                 **Focal Length:** {focal_length:.2f} mm  
                 **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
                 **Working Distance:** {distance_cm:.2f} cm  
                 """)
+
