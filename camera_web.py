@@ -186,3 +186,40 @@ if sensor_width and pixel_size:
                     st.image(pixelate(img, px_for_18cm), caption=f"Computed: {px_for_18cm:.0f} px", use_container_width=True)
                 with col2:
                     st.image(pixelate(img, 80), caption="Required: 80 px", use_container_width=True)
+
+            # --- Depth of Field Calculator ---
+            st.write("### Depth of Field Calculator")
+
+            # 必填參數
+            f_number      = st.number_input("Aperture (f-number)",       min_value=0.1,   value=2.8)
+            focus_dist_cm = st.number_input("Focus distance (cm)",       min_value=0.0,   value=100.0)
+            coc = st.number_input("Circle of Confusion (mm)",            min_value=0.00001,    value=diag_mm/1500,   format="%.5f")
+
+            # 只有在所有參數有效時才計算
+            if focal_length and f_number > 0 and focus_dist_cm > 0 and coc > 0:
+                # 單位轉換
+                f = focal_length           # mm
+                N = f_number
+                u = focus_dist_cm * 10     # mm
+                C = coc                    # mm
+
+                # 計算 Hyperfocal Distance H
+                H = f + (f * f) / (N * C)
+
+                # 計算 Near Focus Distance Dn
+                Dn = (H * u) / (H + (u - f))
+
+                # 計算 Far Focus Distance Df
+                if u < H:
+                    Df = (H * u) / (H - (u - f))
+                else:
+                    Df = float('inf')
+
+                # 計算 Depth of Field
+                DoF = float('inf') if Df == float('inf') else (Df - Dn)
+
+                # 以公尺顯示
+                st.write(f"**Hyperfocal Distance:** {H/1000:.3f} m")
+                st.write(f"**Near Focus Distance:** {Dn/1000:.3f} m")
+                st.write(f"**Far Focus Distance:** {'∞' if Df==float('inf') else f'{Df/1000:.3f} m'}")
+                st.write(f"**Depth of Field (DoF):** {'∞' if DoF==float('inf') else f'{DoF/1000:.3f} m'}")
