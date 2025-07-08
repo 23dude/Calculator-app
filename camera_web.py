@@ -30,6 +30,28 @@ else:
 if sensor_width and pixel_size:
     sensor_height = (pixel_size / 1000) * v_res
 
+    # --- Optical Format 計算 ---
+    diag_mm = math.hypot(sensor_width, sensor_height)
+    opt_inch = diag_mm * 1.5 / 25.4
+    # film (35mm) optical-format-inches
+    film_diag = math.hypot(36, 24)
+    film_inch = film_diag * 1.5 / 25.4
+    formats = [
+        ("1/4″",       1/4),
+        ("1/3.6″",     1/3.6),
+        ("1/3.2″",     1/3.2),
+        ("1/3″",       1/3),
+        ("1/2.7″",     1/2.7),
+        ("1/2.5″",     1/2.5),
+        ("1/2″",       1/2),
+        ("1/1.8″",     1/1.8),
+        ("2/3″",       2/3),
+        ("1″",         1.0),
+        ("4/3″",       4/3),
+        ("35mm",       film_inch),
+    ]
+    optical_format = min(formats, key=lambda x: abs(opt_inch - x[1]))[0]
+
     choice = st.radio("Input Method", ["Focal length (mm)", "Diagonal FOV (°)"])
 
     focal_length = None
@@ -104,6 +126,8 @@ if sensor_width and pixel_size:
             **Diagonal FOV (DFOV):** {dfov_deg:.2f}°  
             **Focal Length:** {focal_length:.2f} mm  
             **Sensor Size:** {sensor_width:.2f} mm × {sensor_height:.2f} mm  
+            **Optical Format:** {optical_format}  
+            **Active Pixels:** {h_res} (H) × {v_res} (V) = {h_res * v_res / 1_000_000:.1f} MP
             """)
             
             with col2:
@@ -160,5 +184,3 @@ if sensor_width and pixel_size:
                     st.image(pixelate(img, px_for_18cm), caption=f"Computed: {px_for_18cm:.0f} px", use_container_width=True)
                 with col2:
                     st.image(pixelate(img, 80), caption="Required: 80 px", use_container_width=True)
-
-
