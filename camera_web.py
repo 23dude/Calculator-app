@@ -191,17 +191,32 @@ if sensor_width and pixel_size:
             st.write("### Depth of Field Calculator")
 
             # 必填參數
-            f_number      = st.number_input("Aperture (f-number)",       min_value=0.1,   value=2.8)
-            focus_dist_cm = st.number_input("Focus distance (cm)",       min_value=0.0,   value=100.0)
-            coc = st.number_input("Circle of Confusion (mm)",            min_value=0.00001,    value=diag_mm/1500,   format="%.5f")
+            f_number      = st.number_input("Aperture (f-number)", min_value=0.1, value=2.0)
+            focus_dist_cm = st.number_input("Focus at the subject distance (cm)", min_value=0.0, value=100.0)
 
-            # 只有在所有參數有效時才計算
-            if focal_length and f_number > 0 and focus_dist_cm > 0 and coc > 0:
+            # 先計算 CoC，不再讓使用者手動輸入
+            if focal_length and f_number > 0 and focus_dist_cm > 0 and pixel_size:
+                # 1. Airy disk (μm)
+                λ = 0.55
+                D_airy = 2.44 * λ * f_number
+                # 2. Pixel pitch (μm)
+                Ppix = pixel_size
+                # 3. Permissible δ
+                delta = max(D_airy, Ppix)
+                # 4. Bayer factor
+                C_min = delta * 2 #留著之後可能用的到
+                C_max = delta * 3
+                # 顯示所有中間值
+                st.write(f"Airy disk: **{D_airy:.3f} μm**")
+                st.write(f"Pixel pitch: **{Ppix:.3f} μm**")
+                st.write(f"Circle of Confusion (Max): **{C_max/1000:.5f} mm**")
+                # 最終 CoC 以最小值當預設
+                C = C_max / 1000  # mm
+
                 # 單位轉換
                 f = focal_length           # mm
                 N = f_number
                 u = focus_dist_cm * 10     # mm
-                C = coc                    # mm
 
                 # 計算 Hyperfocal Distance H
                 H = f + (f * f) / (N * C)
@@ -223,3 +238,51 @@ if sensor_width and pixel_size:
                 st.write(f"**Near Focus Distance:** {Dn/1000:.3f} m")
                 st.write(f"**Far Focus Distance:** {'∞' if Df==float('inf') else f'{Df/1000:.3f} m'}")
                 st.write(f"**Depth of Field (DoF):** {'∞' if DoF==float('inf') else f'{DoF/1000:.3f} m'}")
+
+                # --- Depth of Field Plot ---
+                # 轉成 cm
+                near_cm    = Dn    / 10
+                subject_cm = u     / 10
+                far_cm_raw = Df    / 10 if Df != float('inf') else float('inf')
+
+                # 定義圖表總長度 (cm)，可自行調整
+                max_plot_cm = 200
+
+                # 如果 far 超出圖表長度，就截到 max_plot_cm
+                far_cm = min(far_cm_raw, max_plot_cm)
+
+                # 繪圖
+                fig, ax = plt.subplots(figsize=(10, 2))
+                ax.set_xlim(0, max_plot_cm)
+                ax.set_ylim(0, 1)
+                ax.axis('off')
+
+                # 整體背景（0 → max_plot_cm）淡色
+                ax.axvspan(0, max_plot_cm, color='lightblue', alpha=0.2)
+
+                # 焦平面範圍（near_cm → far_cm）深色
+                ax.axvspan(near_cm, far_cm, color='lightblue', alpha=0.8)
+
+                # 相機與 Subject 標示
+                ax.text(0, 0.5, '📷 Camera', ha='left', va='center', fontsize=14)
+                ax.plot(subject_cm, 0.5, 'ro')
+                ax.text(subject_cm, 0.6, f'🎯 Focus Target\n{subject_cm:.1f} cm',
+                        ha='center', va='bottom', fontsize=14, color='red')
+
+                # 標示 Near
+                ax.text(near_cm, 0.1, f'Near ({near_cm:.1f} cm)',
+                        ha='center', va='bottom', fontsize=12, color='black', weight='bold')
+
+                # 標示 Far 或 ∞
+                if Df != float('inf'):
+                    # 如果原本 Df 有限
+                    display_far = f'{far_cm:.1f} cm' if far_cm_raw <= max_plot_cm else f'>{max_plot_cm:.0f} cm'
+                    ax.text(far_cm, 0.1, f'Far ({display_far})',
+                            ha='center', va='bottom', fontsize=12, color='black', weight='bold')
+                else:
+                    # 原本 Df = ∞
+                    ax.text(max_plot_cm, 0.1, 'Far (infinity)',
+                            ha='right', va='bottom', fontsize=12, color='black', weight='bold')
+
+                plt.tight_layout()
+                st.pyplot(fig)
