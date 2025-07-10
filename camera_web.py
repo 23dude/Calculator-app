@@ -5,6 +5,7 @@ from PIL import Image
 import matplotlib as mpl
 import io
 import base64
+import numpy as np
 
 st.markdown(
     """
@@ -367,3 +368,161 @@ if sensor_width and pixel_size:
                     """,
                     unsafe_allow_html=True
                 )
+
+                # ---------------------
+                # ✅ Summary Check (fixed & reactive)
+                # ---------------------
+                st.subheader("✅ Summary Check")
+
+                # --- 1. Basic Checks ---
+                Dn_cm = Dn / 10
+                Df_cm = (Df / 10) if Df != float('inf') else float('inf')
+
+                min_dof_cm = st.number_input("Desired near limit (cm)", value=50.0)
+                max_dof_cm = st.number_input("Desired far limit (cm)", value=1500.0)
+                required_px_at_5m = st.number_input("Required face pixels at 5 m", value=80.0)
+
+                covers = (Dn_cm <= min_dof_cm) and (Df_cm >= max_dof_cm)
+
+                TEST_MM = 5000.0
+                m5_orig = focal_length / (TEST_MM - focal_length)
+                hf5_orig = sensor_width / m5_orig
+                px5_orig = 18.0 / ((hf5_orig/10) / h_res)
+
+                # 先计算实际 Near/Far 和总 DoF（cm）
+                Dn_cm = Dn / 10
+                Df_cm = Df / 10 if Df != float('inf') else float('inf')
+                actual_total = float('inf') if Df_cm == float('inf') else Df_cm - Dn_cm
+
+                # 然后替换原来的 covers/ misses 显示
+                if covers:
+                    if Df_cm == float('inf'):
+                        st.success(
+                            f"✅ DoF covers {min_dof_cm:.0f} cm to {max_dof_cm/100:.1f} m → "
+                            f"Actual DoF: {Dn_cm:.1f} cm to ∞ (Total: ∞)"
+                        )
+                    else:
+                        st.success(
+                            f"✅ DoF covers {min_dof_cm:.0f} cm to {max_dof_cm/100:.1f} m → "
+                            f"Actual DoF: {Dn_cm:.1f} cm to {Df_cm:.1f} cm (Total: {actual_total:.1f} cm)"
+                        )
+                else:
+                    if Df_cm == float('inf'):
+                        st.error(
+                            f"❌ DoF misses {min_dof_cm:.0f} cm to {max_dof_cm/100:.1f} m → "
+                            f"Actual DoF: {Dn_cm:.1f} cm to ∞ (Total: ∞)"
+                        )
+                    else:
+                        st.error(
+                            f"❌ DoF misses {min_dof_cm:.0f} cm to {max_dof_cm/100:.1f} m → "
+                            f"Actual DoF: {Dn_cm:.1f} cm to {Df_cm:.1f} cm (Total: {actual_total:.1f} cm)"
+                        )
+
+                if px5_orig >= required_px_at_5m:
+                    st.success(f"✅ At 5 m: {px5_orig:.1f} px ≥ {required_px_at_5m:.0f} px → sufficient for recognition.")
+                else:
+                    st.error(f"❌ At 5 m: {px5_orig:.1f} px < {required_px_at_5m:.0f} px → not sufficient for recognition.")
+
+                if covers and px5_orig >= required_px_at_5m:
+                    st.info("Current setting already meets both requirements – no adjustment needed.")
+                    #st.stop()
+
+                # --- 🔧 Adjustment Suggestions ---
+                st.markdown("### 🔧 Adjustment Suggestions")
+
+                # 1. 输入 ±范围
+                N_adj = st.number_input("Aperture adjustment range + (stops)", value=2.0)
+                f_adj = st.number_input("Focal length adjustment range + (mm)", value=5.0)
+
+                # 2. 离散化 f-number & 焦距 列表
+                aperture_choices = np.array([1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5])
+                N_vals = aperture_choices[(aperture_choices >= f_number - N_adj) & (aperture_choices <= f_number + N_adj)]
+                f_min = max(1.0, math.floor(focal_length - f_adj))
+                f_max = math.ceil(focal_length + f_adj)
+                f_vals = np.arange(f_min, f_max + 1, 1)
+
+                # 3. 计算所有可行组合
+                λ = 0.55  # μm
+                cand = []
+                for N_try in N_vals:
+                    D_airy = 2.44 * λ * N_try
+                    C_mm = 2 * max(D_airy, pixel_size) / 1000
+                    for f_try in f_vals:
+                        H = f_try + (f_try**2) / (N_try * C_mm)
+                        u = focus_dist_cm * 10
+                        Dn = (H * u) / (H + (u - f_try))
+                        Df = (H * u) / (H - (u - f_try)) if u < H else float('inf')
+                        ok_dof = (Dn/10 <= min_dof_cm) and ((Df/10 if Df!=float('inf') else float('inf')) >= max_dof_cm)
+                        if not ok_dof:
+                            continue
+                        m5 = f_try / (TEST_MM - f_try)
+                        px5 = 18.0 / ((sensor_width / m5 / 10) / h_res)
+                        if px5 < required_px_at_5m:
+                            continue
+                        dN = abs(N_try - f_number) / (np.ptp(N_vals) + 1e-6)
+                        dF = abs(f_try - focal_length) / (np.ptp(f_vals) + 1e-6)
+                        cand.append((dN, dF, N_try, f_try))
+
+                # 4. Guard for empty cand
+                if not cand:
+                    st.warning(
+                        "⚠️ No valid aperture/focal length combinations found in your ± ranges. "
+                        "Please widen the ranges or check your system parameters."
+                    )
+                    st.stop()
+
+                # 5. 配对字典
+                from collections import defaultdict
+                matches_by_N = defaultdict(list)
+                matches_by_f = defaultdict(list)
+                for _, _, N_try, f_try in cand:
+                    matches_by_N[N_try].append(f_try)
+                    matches_by_f[f_try].append(N_try)
+
+                # 6. 基础索引与滑杆范围计算
+                base_idx_N = int(np.argmin(np.abs(N_vals - f_number)))
+                base_idx_F = int(np.argmin(np.abs(f_vals - focal_length)))
+                max_pos = len(N_vals) - 1 - base_idx_N  # 最大正方向步数
+                max_neg = -(len(f_vals) - 1 - base_idx_F) # 最大负方向步数 (negative)
+                slider = st.slider(
+                    "Custom: ▶ move right to step f-number, ◀ move left to step focal length",
+                    min_value=max_neg,
+                    max_value=max_pos,
+                    value=0,
+                    step=1
+                )
+
+                # 7. 自定义结果展示
+                if slider > 0:
+                    # 右移：调整 f-number
+                    idx_N = base_idx_N + slider
+                    N_sel = N_vals[idx_N]
+                    fls = sorted(matches_by_N.get(N_sel, []))
+                    if not fls:
+                        st.markdown(f"**no match when f-number = {N_sel:.1f}**")
+                    else:
+                        st.markdown(f"- **Aperture:** {N_sel:.1f}")
+                        st.markdown(f"- **Focal Length (min):** {fls[0]:.0f} mm (+{len(fls)-1} more)")
+                elif slider < 0:
+                    # 左移：调整 focal length，每格 +1mm
+                    steps = abs(slider)
+                    idx_F = base_idx_F + steps
+                    f_sel = f_vals[idx_F]
+                    Ns = sorted(matches_by_f.get(f_sel, []))
+                    if not Ns:
+                        st.markdown(f"**no match when focal length = {f_sel:.0f} mm**")
+                    else:
+                        st.markdown(f"- **Focal Length:** {f_sel:.0f} mm")
+                        st.markdown(f"- **Aperture (min):** {Ns[0]:.1f} (+{len(Ns)-1} more)")
+                else:
+                    st.markdown(f"> Current f-number = {f_number:.1f}, focal length = {focal_length:.0f} mm")
+
+                # 8. Recommendations
+                bestN = min(cand, key=lambda x: x[0])
+                bestF = min(cand, key=lambda x: x[1])
+                st.markdown("----")
+                st.markdown(f"**Recommendation1 (min Δf-number):** f-number = {bestN[2]:.1f}, focal length = {bestN[3]:.0f} mm")
+                st.markdown(f"**Recommendation2 (min Δfocal length):** focal length = {bestF[3]:.0f} mm, f-number = {bestF[2]:.1f}")
+
+
+
