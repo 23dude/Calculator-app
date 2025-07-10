@@ -6,8 +6,6 @@ import matplotlib as mpl
 import io
 import base64
 
-st.set_page_config(layout="wide")
-
 st.markdown(
     """
     <style>
