@@ -2,6 +2,29 @@ import streamlit as st
 import math
 import matplotlib.pyplot as plt
 from PIL import Image
+import matplotlib as mpl
+import io
+import base64
+
+st.markdown(
+    """
+    <style>
+      /* 1. 讓主區塊不設 max-width 並允許橫向捲動 */
+      div[role="main"] .block-container {
+        max-width: none !important;
+        overflow-x: auto;
+      }
+      /* 2. 取消所有 <img> 的 max-width 限制 */
+      img {
+        max-width: none !important;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# 指定一个支持 Emoji 的字体
+mpl.rcParams['font.family'] = 'Segoe UI Emoji'
 
 st.title("📷 Face Recognition Calculator")
 
@@ -209,7 +232,7 @@ if sensor_width and pixel_size:
                 # 顯示所有中間值
                 st.write(f"Airy disk: **{D_airy:.3f} μm**")
                 st.write(f"Pixel pitch: **{Ppix:.3f} μm**")
-                st.write(f"Circle of Confusion (Max): **{C_max/1000:.5f} mm**")
+                st.write(f"Circle of Confusion (min): **{C_min/1000:.5f} mm**")
                 # 最終 CoC 以最小值當預設
                 C = C_max / 1000  # mm
 
@@ -239,50 +262,107 @@ if sensor_width and pixel_size:
                 st.write(f"**Far Focus Distance:** {'∞' if Df==float('inf') else f'{Df/1000:.3f} m'}")
                 st.write(f"**Depth of Field (DoF):** {'∞' if DoF==float('inf') else f'{DoF/1000:.3f} m'}")
 
-                # --- Depth of Field Plot ---
-                # 轉成 cm
+                # --- Depth of Field Plot (左右上下都固定) --- 
+                # 1) 先把参数都算好
                 near_cm    = Dn    / 10
                 subject_cm = u     / 10
                 far_cm_raw = Df    / 10 if Df != float('inf') else float('inf')
+                max_plot_cm = 1500
+                far_cm      = min(far_cm_raw, max_plot_cm)
 
-                # 定義圖表總長度 (cm)，可自行調整
-                max_plot_cm = 200
-
-                # 如果 far 超出圖表長度，就截到 max_plot_cm
-                far_cm = min(far_cm_raw, max_plot_cm)
-
-                # 繪圖
-                fig, ax = plt.subplots(figsize=(10, 2))
-                ax.set_xlim(0, max_plot_cm)
-                ax.set_ylim(0, 1)
+                # 2) 建图并让 Axes 铺满整个 Figure
+                fig = plt.figure(figsize=(60, 4), dpi=300)
+                ax  = fig.add_axes([0, 0, 1, 1])
                 ax.axis('off')
 
-                # 整體背景（0 → max_plot_cm）淡色
-                ax.axvspan(0, max_plot_cm, color='lightblue', alpha=0.2)
+                # 3) 锁定并取消所有 margin
+                ax.set_autoscale_on(False)
+                ax.set_xlim(0, max_plot_cm)
+                ax.set_ylim(0, 1)
+                ax.margins(x=0, y=0)        # 彻底关掉 x/y 轴 padding
+                ax.set_xbound(0, max_plot_cm)
+                ax.set_ybound(0, 1)
 
-                # 焦平面範圍（near_cm → far_cm）深色
-                ax.axvspan(near_cm, far_cm, color='lightblue', alpha=0.8)
+                # 4) 背景 & DoF span 用 x–轴变换，y 从 0→1
+                ax.axvspan(
+                    0, max_plot_cm,
+                    ymin=0, ymax=1,
+                    transform=ax.get_xaxis_transform(),
+                    color='lightblue', alpha=0.2,
+                    zorder=0
+                )
+                ax.axvspan(
+                    near_cm, far_cm,
+                    ymin=0, ymax=1,
+                    transform=ax.get_xaxis_transform(),
+                    color='lightblue', alpha=0.8,
+                    zorder=1
+                )
 
-                # 相機與 Subject 標示
-                ax.text(0, 0.5, '📷 Camera', ha='left', va='center', fontsize=14)
-                ax.plot(subject_cm, 0.5, 'ro')
-                ax.text(subject_cm, 0.6, f'🎯 Focus Target\n{subject_cm:.1f} cm',
-                        ha='center', va='bottom', fontsize=14, color='red')
+                # 5) 相机标记 → 完全用 axes fraction
+                ax.text(
+                    0, 0.5, '📷 Camera',
+                    transform=ax.transAxes,
+                    ha='left', va='center', fontsize=14,
+                    clip_on=True
+                )
 
-                # 標示 Near
-                ax.text(near_cm, 0.1, f'Near ({near_cm:.1f} cm)',
-                        ha='center', va='bottom', fontsize=12, color='black', weight='bold')
+                # 6) 焦点目标 → x 用 data, y 用 axes fraction
+                ax.plot(subject_cm, 0.5, 'ro', clip_on=True)
+                ax.text(
+                    subject_cm, 0.6, f'🎯 Focus Target\n{subject_cm:.1f} cm',
+                    transform=ax.get_xaxis_transform(),
+                    ha='center', va='bottom', fontsize=14, color='red',
+                    clip_on=True
+                )
 
-                # 標示 Far 或 ∞
+                ax.text(
+                1.0, 0.05, 'infinity',
+                transform=ax.transAxes,    # x=1.0 对应 axes 右边缘
+                ha='right', va='bottom',
+                fontsize=12, fontweight='bold',
+                clip_on=True
+                )
+
+                # 7) Near / Far 注记也是 x–data, y–axes
+                ax.text(
+                    near_cm, 0.05, f'Near\n {near_cm:.1f} cm',
+                    transform=ax.get_xaxis_transform(),
+                    ha='center', va='bottom', fontsize=12, fontweight='bold',
+                    clip_on=True
+                )
                 if Df != float('inf'):
-                    # 如果原本 Df 有限
-                    display_far = f'{far_cm:.1f} cm' if far_cm_raw <= max_plot_cm else f'>{max_plot_cm:.0f} cm'
-                    ax.text(far_cm, 0.1, f'Far ({display_far})',
-                            ha='center', va='bottom', fontsize=12, color='black', weight='bold')
+                    display_far = (
+                        f'{far_cm:.1f} cm'
+                        if far_cm_raw <= max_plot_cm
+                        else f'>{max_plot_cm:.0f} cm'
+                    )
+                    ax.text(
+                        far_cm, 0.05, f'Far\n {display_far}',
+                        transform=ax.get_xaxis_transform(),
+                        ha='center', va='bottom', fontsize=12, fontweight='bold',
+                        clip_on=True
+                    )
                 else:
-                    # 原本 Df = ∞
-                    ax.text(max_plot_cm, 0.1, 'Far (infinity)',
-                            ha='right', va='bottom', fontsize=12, color='black', weight='bold')
+                    ax.text(
+                        1, 0.05, 'Far\n infinity',
+                        transform=ax.transAxes,
+                        ha='right', va='bottom', fontsize=12, fontweight='bold',
+                        clip_on=True
+                    )
 
-                plt.tight_layout()
-                st.pyplot(fig)
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png', bbox_inches='tight')
+                buf.seek(0)
+                data = base64.b64encode(buf.getvalue()).decode()
+
+                # ← 用 HTML embed 強制 3000px 寬並顯示水平捲軸
+                st.markdown(
+                    f"""
+                    <div style="width:100%; overflow-x:auto;">
+                    <img src="data:image/png;base64,{data}"
+                        style="width:3000px; max-width:none !important; display:block;" />
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
