@@ -234,7 +234,7 @@ if sensor_width and pixel_size:
                 st.write(f"Pixel pitch: **{Ppix:.3f} μm**")
                 st.write(f"Circle of Confusion (min): **{C_min/1000:.5f} mm**")
                 # 最終 CoC 以最小值當預設
-                C = C_max / 1000  # mm
+                C = C_min / 1000  # mm
 
                 # 單位轉換
                 f = focal_length           # mm
@@ -316,14 +316,6 @@ if sensor_width and pixel_size:
                     clip_on=True
                 )
 
-                ax.text(
-                1.0, 0.05, 'infinity',
-                transform=ax.transAxes,    # x=1.0 对应 axes 右边缘
-                ha='right', va='bottom',
-                fontsize=12, fontweight='bold',
-                clip_on=True
-                )
-
                 # 7) Near / Far 注记也是 x–data, y–axes
                 ax.text(
                     near_cm, 0.05, f'Near\n {near_cm:.1f} cm',
@@ -335,14 +327,23 @@ if sensor_width and pixel_size:
                     display_far = (
                         f'{far_cm:.1f} cm'
                         if far_cm_raw <= max_plot_cm
-                        else f'>{max_plot_cm:.0f} cm'
+                        else f'{Df/1000:.1f} m'
                     )
+                    x_label = max(far_cm - 10, 0) 
                     ax.text(
-                        far_cm, 0.05, f'Far\n {display_far}',
+                        x_label, 0.05, f'Far\n {display_far}',
                         transform=ax.get_xaxis_transform(),
                         ha='center', va='bottom', fontsize=12, fontweight='bold',
                         clip_on=True
                     )
+                    if Df < max_plot_cm*10: #換成mm
+                        ax.text(
+                        1.0, 0.05, 'infinity',
+                        transform=ax.transAxes,    # x=1.0 对应 axes 右边缘
+                        ha='right', va='bottom',
+                        fontsize=12, fontweight='bold',
+                        clip_on=True
+                        )
                 else:
                     ax.text(
                         1, 0.05, 'Far\n infinity',
